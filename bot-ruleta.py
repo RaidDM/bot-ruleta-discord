@@ -30,25 +30,44 @@ async def on_ready():
     await tree.sync()
     print(f'Bot conectado como {client.user}')
 
-@tree.command(name="ruleta", description="Divide un monto entre una lista")
-async def ruleta(interaction: discord.Interaction, monto: float, nombres: str):
-    lista_nombres = [n.strip() for n in nombres.split(",")]
-    if not lista_nombres:
-        await interaction.response.send_message("Escribe nombres separados por comas.")
+@tree.command(name="ruleta", description="Divide un monto entre miembros mencionados")
+async def ruleta(interaction: discord.Interaction, monto: float, miembros: str):
+    # Separamos las menciones (ejemplo: @usuario1 @usuario2)
+    # Al poner las menciones en el comando, Discord las envía como <@id>
+    lista_miembros = miembros.split() 
+    
+    if not lista_miembros:
+        await interaction.response.send_message("Menciona a los miembros (ej: @Daniel @Yarod).")
         return
     
-    random.shuffle(lista_nombres)
-    pago_por_persona = monto / len(lista_nombres)
+    # Mezclamos el orden
+    random.shuffle(lista_miembros)
     
-    respuesta = f"**Ruleta**\n"
-    respuesta += f"Monto: ${monto:,.2f} | Cada uno: **${pago_por_persona:,.2f}**\n\n"
-    for i, nombre in enumerate(lista_nombres, 1):
-        respuesta += f"{i}. {nombre}\n"
+    # Calculamos la división (sin decimales largos para que se vea limpio)
+    pago_por_persona = int(monto / len(lista_miembros))
     
-    await interaction.response.send_message(respuesta)
+    # Creamos el diseño (Embed)
+    embed = discord.Embed(
+        title="Ruleta",
+        color=discord.Color.blue() # Color de la barra lateral
+    )
+    
+    # Añadimos los campos de Total y Por Persona uno al lado del otro
+    embed.add_field(name="Total", value=f"{int(monto):,}", inline=True)
+    embed.add_field(name="Por Persona", value=f"{pago_por_persona:,}", inline=True)
+    
+    # Creamos la lista numerada con las menciones
+    lista_texto = ""
+    for i, miembro in enumerate(lista_miembros, 1):
+        lista_texto += f"{i} {miembro}\n"
+    
+    embed.add_field(name="Resultados", value=lista_texto, inline=False)
+    
+    await interaction.response.send_message(embed=embed)
 
 # Iniciamos el servidor falso y luego el bot
 keep_alive()
 token = os.getenv('DISCORD_TOKEN')
 client.run(token)
+
 
