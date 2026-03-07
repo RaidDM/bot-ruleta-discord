@@ -41,12 +41,15 @@ async def ruleta(interaction: discord.Interaction, monto: float, miembros: str):
     embed.add_field(name="Total", value=f"{int(monto):,}", inline=True)
     embed.add_field(name="Por Persona", value=f"{pago_por_persona:,}", inline=True)
     
-    resultados = ""
-    for i, m in enumerate(lista_miembros, 1):
-        resultados += f"{i} {m}\n"
+  resultados = ""
+    for i, m in enumerate(lista_entrada, 1):
+        # Esto intenta limpiar el formato por si llega con <@!ID> o solo el ID
+        mencion_limpia = m.replace("!", "") 
+        resultados += f"{i}. {mencion_limpia}\n"
     
     embed.add_field(name="Resultados", value=resultados, inline=False)
     await interaction.response.send_message(embed=embed)
 
 keep_alive()
 client.run(os.getenv('DISCORD_TOKEN'))
+
