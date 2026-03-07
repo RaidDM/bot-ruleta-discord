@@ -20,8 +20,7 @@ def keep_alive():
 
 # --- CONFIGURACIÓN DEL BOT ---
 intents = discord.Intents.default()
-intents.members = True 
-intents.message_content = True
+intents.members = True # Requiere 'Server Members Intent' en el Portal
 
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
@@ -29,29 +28,24 @@ tree = app_commands.CommandTree(client)
 @client.event
 async def on_ready():
     await tree.sync()
-    print(f'Conectado como {client.user}')
+    print(f'Bot conectado como {client.user}')
 
-@tree.command(name="ruleta", description="Reparto de botín para miembros infinitos")
+@tree.command(name="ruleta", description="Reparto con menciones azules infinitas")
 async def ruleta(interaction: discord.Interaction, monto: float, miembros: str):
-    # Usamos las menciones reales que Discord detecta en el texto
-    # Esto filtra solo a los usuarios mencionados (los que salen en azul)
-    lista_miembros = interaction.data.get('resolved', {}).get('users', {})
+    # Separamos la cadena de texto por espacios
+    elementos = miembros.split()
     
-    # Si no detectó menciones integradas, intentamos separar por espacios el texto
-    if not lista_miembros:
-        lista_final = miembros.split()
-    else:
-        # Convertimos los IDs detectados en menciones de formato <@id>
-        lista_final = [f"<@{user_id}>" for user_id in lista_miembros.keys()]
-
-    if not lista_final:
-        await interaction.response.send_message("Menciona a los miembros (ej: @Daniel @Yarod).")
+    if not elementos:
+        await interaction.response.send_message("Menciona a los miembros con @")
         return
 
-    random.shuffle(lista_final)
-    pago_por_persona = int(monto / len(lista_final))
+    # Mezclamos la lista
+    random.shuffle(elementos)
+    
+    # Calculamos el pago por persona
+    pago_por_persona = int(monto / len(elementos))
 
-    # Diseño del Embed (Cuadro)
+    # Diseño del Embed (Color Cian de los Crazy Raccoons)
     embed = discord.Embed(
         title="Ruleta - Crazy Raccoons", 
         color=discord.Color.from_rgb(0, 255, 255)
@@ -60,9 +54,11 @@ async def ruleta(interaction: discord.Interaction, monto: float, miembros: str):
     embed.add_field(name="Total", value=f"{int(monto):,}", inline=True)
     embed.add_field(name="Por Persona", value=f"{pago_por_persona:,}", inline=True)
     
+    # Construimos la lista de resultados
     resultados = ""
-    for i, m in enumerate(lista_final, 1):
-        # Forzamos que el bot use el formato de mención para el color azul
+    for i, m in enumerate(elementos, 1):
+        # El bot simplemente imprime lo que recibe. 
+        # Si seleccionas el nombre de la lista de Discord, se verá azul.
         resultados += f"{i}. {m}\n"
     
     embed.add_field(name="Resultados", value=resultados, inline=False)
@@ -71,6 +67,4 @@ async def ruleta(interaction: discord.Interaction, monto: float, miembros: str):
 
 if __name__ == "__main__":
     keep_alive()
-    token = os.getenv('DISCORD_TOKEN')
-    if token:
-        client.run(token)
+    client.run(os.getenv('DISCORD_TOKEN'))
