@@ -40,7 +40,7 @@ async def ruleta(interaction: discord.Interaction, monto: float, nombres: str):
     random.shuffle(lista_nombres)
     pago_por_persona = monto / len(lista_nombres)
     
-    respuesta = f"**💰 División de Botín 💰**\n"
+    respuesta = f"**Ruleta**\n"
     respuesta += f"Monto: ${monto:,.2f} | Cada uno: **${pago_por_persona:,.2f}**\n\n"
     for i, nombre in enumerate(lista_nombres, 1):
         respuesta += f"{i}. {nombre}\n"
@@ -51,3 +51,4 @@ async def ruleta(interaction: discord.Interaction, monto: float, nombres: str):
 keep_alive()
 token = os.getenv('DISCORD_TOKEN')
 client.run(token)
+
