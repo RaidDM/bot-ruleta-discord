@@ -1,48 +1,46 @@
 import discord
 from discord import app_commands
-from discord.ext import commands
 import random
-import os  # <--- Importante para leer la variable de entorno
+import os
 
+# Configuración básica de Intents
 intents = discord.Intents.default()
-intents.message_content = True
-bot = commands.Bot(command_prefix="!", intents=intents)
+client = discord.Client(intents=intents)
+tree = app_commands.CommandTree(client)
 
-@bot.event
+@client.event
 async def on_ready():
-    await bot.tree.sync()
-    print(f'Bot conectado como {bot.user}')
+    # Sincroniza los comandos con Discord
+    await tree.sync()
+    print(f'Bot conectado como {client.user}')
 
-@bot.tree.command(name="ruleta", description="Divide un monto y organiza los nombres al azar")
+@tree.command(name="ruleta", description="Divide un monto entre una lista de personas en orden aleatorio")
 async def ruleta(interaction: discord.Interaction, monto: float, nombres: str):
-    lista_nombres = nombres.replace(",", " ").split()
+    # Convertimos el string de nombres en una lista
+    # Ejemplo: "Jugador1, Jugador2, Jugador3"
+    lista_nombres = [n.strip() for n in nombres.split(",")]
     
-    if len(lista_nombres) < 1:
-        await interaction.response.send_message("❌ Debes ingresar al menos un nombre.")
+    if len(lista_nombres) == 0:
+        await interaction.response.send_message("Debes ingresar al menos un nombre.")
         return
 
+    # Mezclamos la lista de forma aleatoria
     random.shuffle(lista_nombres)
-    cantidad_personas = len(lista_nombres)
-    pago_por_persona = monto / cantidad_personas
-
-    embed = discord.Embed(
-        title="🎰 Resultado de la Ruleta",
-        color=discord.Color.gold(),
-        description=f"Se ha dividido **{monto:,.2f}** entre **{cantidad_personas}** personas."
-    )
     
-    cuerpo_lista = ""
+    # Calculamos la división
+    pago_por_persona = monto / len(lista_nombres)
+    
+    # Construimos el mensaje de respuesta
+    respuesta = f"**💰 División de Botín 💰**\n"
+    respuesta += f"Monto total: ${monto:,.2f}\n"
+    respuesta += f"Cada uno recibe: **${pago_por_persona:,.2f}**\n\n"
+    respuesta += "**Orden de la ruleta:**\n"
+    
     for i, nombre in enumerate(lista_nombres, 1):
-        cuerpo_lista += f"**{i}.** {nombre} — `{pago_por_persona:,.2f}`\n"
+        respuesta += f"{i}. {nombre}\n"
     
-    embed.add_field(name="Orden de Reparto y Montos:", value=cuerpo_lista, inline=False)
-    embed.set_footer(text="El orden se generó de forma aleatoria.")
+    await interaction.response.send_message(respuesta)
 
-    await interaction.response.send_message(embed=embed)
-
-# --- ESTA ES LA PARTE QUE CAMBIA ---
-TOKEN = os.getenv('DISCORD_TOKEN')
-if TOKEN:
-    bot.run(TOKEN)
-else:
-    print("Error: No se encontró la variable DISCORD_TOKEN")
+# Token del bot (obtenido de las variables de entorno)
+token = os.getenv('DISCORD_TOKEN')
+client.run(token)
