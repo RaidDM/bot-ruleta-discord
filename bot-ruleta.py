@@ -5,11 +5,11 @@ import os
 from flask import Flask
 from threading import Thread
 
-# --- CONFIGURACIÓN PARA RENDER (KEEP ALIVE) ---
+# --- CONFIGURACIÓN PARA RENDER ---
 app = Flask('')
 @app.route('/')
 def home(): 
-    return "Bot de Crazy Raccoons Online!"
+    return "¡Bot de Crazy Raccoons Online!"
 
 def run():
     app.run(host='0.0.0.0', port=10000)
@@ -19,9 +19,9 @@ def keep_alive():
     t.start()
 
 # --- CONFIGURACIÓN DEL BOT ---
-# Activamos los Intents para que el bot pueda ver a los miembros
 intents = discord.Intents.default()
-intents.members = True  # Esto requiere el "Server Members Intent" en el portal de Discord
+intents.members = True 
+intents.message_content = True
 
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
@@ -29,52 +29,48 @@ tree = app_commands.CommandTree(client)
 @client.event
 async def on_ready():
     await tree.sync()
-    print(f'Conectado exitosamente como {client.user}')
+    print(f'Conectado como {client.user}')
 
-@tree.command(name="ruleta", description="Reparte plata entre miembros de Crazy Raccoons")
+@tree.command(name="ruleta", description="Reparto de botín para miembros infinitos")
 async def ruleta(interaction: discord.Interaction, monto: float, miembros: str):
-    # Separamos la lista por espacios
-    lista_miembros = miembros.split()
+    # Usamos las menciones reales que Discord detecta en el texto
+    # Esto filtra solo a los usuarios mencionados (los que salen en azul)
+    lista_miembros = interaction.data.get('resolved', {}).get('users', {})
     
+    # Si no detectó menciones integradas, intentamos separar por espacios el texto
     if not lista_miembros:
-        await interaction.response.send_message("¡Error! Debes mencionar al menos a una persona.")
+        lista_final = miembros.split()
+    else:
+        # Convertimos los IDs detectados en menciones de formato <@id>
+        lista_final = [f"<@{user_id}>" for user_id in lista_miembros.keys()]
+
+    if not lista_final:
+        await interaction.response.send_message("Menciona a los miembros (ej: @Daniel @Yarod).")
         return
 
-    # Mezclamos la lista aleatoriamente
-    random.shuffle(lista_miembros)
-    
-    # Calculamos el monto por persona (sin decimales)
-    pago_por_persona = int(monto / len(lista_miembros))
+    random.shuffle(lista_final)
+    pago_por_persona = int(monto / len(lista_final))
 
-    # Creamos el Embed (el cuadro con diseño)
+    # Diseño del Embed (Cuadro)
     embed = discord.Embed(
-        title="Ruleta", 
-        color=discord.Color.from_rgb(0, 255, 255) # Un color cian brillante como el de tu imagen
+        title="Ruleta - Crazy Raccoons", 
+        color=discord.Color.from_rgb(0, 255, 255)
     )
     
-    # Añadimos los campos de Total y Por Persona
-    # El formato {:,} añade las comas de miles automáticamente
     embed.add_field(name="Total", value=f"{int(monto):,}", inline=True)
     embed.add_field(name="Por Persona", value=f"{pago_por_persona:,}", inline=True)
     
-    # Generamos la lista de resultados
-    lista_texto = ""
-    for i, miembro in enumerate(lista_miembros, 1):
-        # Limpiamos posibles caracteres extra para asegurar la mención azul
-        m = miembro.replace("!", "")
-        lista_texto += f"{i} {m}\n"
+    resultados = ""
+    for i, m in enumerate(lista_final, 1):
+        # Forzamos que el bot use el formato de mención para el color azul
+        resultados += f"{i}. {m}\n"
     
-    embed.add_field(name="Resultados", value=lista_texto, inline=False)
+    embed.add_field(name="Resultados", value=resultados, inline=False)
     
-    # Enviamos el mensaje final
     await interaction.response.send_message(embed=embed)
 
-# --- INICIO DEL BOT ---
 if __name__ == "__main__":
     keep_alive()
-    # Asegúrate de que la variable de entorno se llame DISCORD_TOKEN en Render
     token = os.getenv('DISCORD_TOKEN')
     if token:
         client.run(token)
-    else:
-        print("Error: No se encontró el TOKEN en las variables de entorno.")
